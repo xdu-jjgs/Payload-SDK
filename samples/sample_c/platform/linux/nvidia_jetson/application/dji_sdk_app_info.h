@@ -35,12 +35,12 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 // ATTENTION: User must goto https://developer.dji.com/user/apps/#all to create your own dji sdk application, get dji sdk application
 // information then fill in the application information here.
-#define USER_APP_NAME               "your_app_name"
-#define USER_APP_ID                 "your_app_id"
-#define USER_APP_KEY                "your_app_key"
-#define USER_APP_LICENSE            "your_app_license"
-#define USER_DEVELOPER_ACCOUNT      "your_developer_account"
-#define USER_BAUD_RATE              "460800"
+#define USER_APP_NAME               "Target Tracking"
+#define USER_APP_ID                 "140968"
+#define USER_APP_KEY                "909ceac15d9531fba9360a9a5ee7e0f"
+#define USER_APP_LICENSE            "OyhiTsuvobVV3rsWtY9mMO8Hu9bXCRKJnZNbBiv1JNCWsKLrsu9VAkSwUEjlV5lTuMxCOw4cbcTPiF40LoeJgu6hOPPsmvoJOiX3iDdWcoEVlBsT3I6GslH/AceaE3nBYYOdMOIRx3sNqq70XFtKBrRzTzAa5yq2QnkYEHaSA6ZJLaoBcdCPuTUfq9scO+OpukWLQA55eAZqSklKAX88hHOoGf4XL24nHehWKB47JXbjKhs/YbBIBhCPpy70hzpYDw5M/13+IOTTGUZnc/pCxKejHNwbF1AeNzUe1n2OuYjLCoHG85hm6DItEUI2f2wjPAhGBYhL0x8NLFcdOL2Wug=="
+#define USER_DEVELOPER_ACCOUNT      "xiaojian.zhong@outlook.com"
+#define USER_BAUD_RATE              "230400"
 
 /* Exported types ------------------------------------------------------------*/
 

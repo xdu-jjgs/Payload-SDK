@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(dji_sdk_demo_on_jetson_cxx CXX)
+project(disease_detect CXX)
 
 set(CMAKE_C_FLAGS "-pthread -std=gnu99")
 set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
@@ -17,7 +17,7 @@ endif ()
 include_directories(../../../module_sample)
 include_directories(../../../../sample_c/module_sample)
 include_directories(../common)
-include_directories(../nvidia_jetson/application)
+include_directories(../disease_detect/application)
 
 file(GLOB_RECURSE MODULE_SAMPLE_SRC
         ../../../module_sample/liveview/*.c*
@@ -43,7 +43,8 @@ add_executable(${PROJECT_NAME}
         ${MODULE_APP_SRC}
         ${MODULE_SAMPLE_SRC}
         ${MODULE_COMMON_SRC}
-        ${MODULE_HAL_SRC})
+        ${MODULE_HAL_SRC}
+        application/v5lite.cpp)
 
 # Try to see if user has OpenCV installed
 # if yes, default callback will display the image
@@ -54,7 +55,8 @@ if (OpenCV_FOUND)
     message(STATUS " - Includes: ${OpenCV_INCLUDE_DIRS}")
     message(STATUS " - Libraries: ${OpenCV_LIBRARIES}")
     add_definitions(-DOPEN_CV_INSTALLED)
-    if ("${OpenCV_VERSION}" STRLESS "4.0.0")
+    execute_process(COMMAND opencv_version OUTPUT_VARIABLE OPENCV_VERSION)
+    if (${OPENCV_VERSION} STRLESS "4.0.0")
         add_definitions(-DOPEN_CV_VERSION_3)
 
     else ()
@@ -102,7 +104,7 @@ if (OPUS_FOUND)
     message(STATUS " - Libraries: ${OPUS_LIBRARY}")
 
     add_definitions(-DOPUS_INSTALLED)
-    target_link_libraries(${PROJECT_NAME} ${OPUS_LIBRARY})
+    target_link_libraries(${PROJECT_NAME} /usr/lib/aarch64-linux-gnu/libopus.so)
 else ()
     message(STATUS "Cannot Find OPUS")
 endif (OPUS_FOUND)
@@ -119,6 +121,39 @@ else ()
     message(STATUS "Cannot Find LIBUSB")
 endif (LIBUSB_FOUND)
 
+#user settings
+# CUDA
+find_package(CUDA REQUIRED)
+message(STATUS "Find CUDA include at ${CUDA_INCLUDE_DIRS}")
+message(STATUS "Find CUDA libraries: ${CUDA_LIBRARIES}")
+
+# TensorRT
+set(TENSORRT_ROOT "/home/chaucer/TensorRT-8.0.1.6")
+find_path(TENSORRT_INCLUDE_DIR NvInfer.h
+        HINTS ${TENSORRT_ROOT} PATH_SUFFIXES include/)
+message(STATUS "Found TensorRT headers at ${TENSORRT_INCLUDE_DIR}")
+find_library(TENSORRT_LIBRARY_INFER nvinfer
+        HINTS ${TENSORRT_ROOT} ${TENSORRT_BUILD} ${CUDA_TOOLKIT_ROOT_DIR}
+        PATH_SUFFIXES lib lib64 lib/x64)
+find_library(TENSORRT_LIBRARY_ONNXPARSER nvonnxparser
+        HINTS  ${TENSORRT_ROOT} ${TENSORRT_BUILD} ${CUDA_TOOLKIT_ROOT_DIR}
+        PATH_SUFFIXES lib lib64 lib/x64)
+set(TENSORRT_LIBRARY ${TENSORRT_LIBRARY_INFER} ${TENSORRT_LIBRARY_ONNXPARSER})
+message(STATUS "Find TensorRT libs: ${TENSORRT_LIBRARY}")
+
+# YAML
+find_package(yaml-cpp REQUIRED)
+message(STATUS "Find YAML include at ${YAML_CPP_INCLUDE_DIR}")
+message(STATUS "Find YAMLs include at ${YAML_INCLUDE_DIRS}")
+
+# json
+find_package(jsoncpp REQUIRED)
+set(JSONCPP_INCLUDE_DIRS "/usr/include/jsoncpp")
+message(STATUS "Find json include at ${JSONCPP_INCLUDE_DIRS}")
+
+set(COMMON_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/application/includes/common)
+include_directories(${CUDA_INCLUDE_DIRS} ${TENSORRT_INCLUDE_DIR} ${YAML_INCLUDE_DIRS} ${COMMON_INCLUDE} ${JSONCPP_INCLUDE_DIRS})
+
 if (NOT EXECUTABLE_OUTPUT_PATH)
     set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 endif ()
@@ -129,7 +164,8 @@ add_custom_command(TARGET ${PROJECT_NAME}
         PRE_LINK COMMAND cmake ..
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS})
 if (OpenCV_FOUND)
     target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 endif ()
+target_link_libraries(${PROJECT_NAME} ${CUDA_LIBRARIES} ${TENSORRT_LIBRARY} yaml-cpp jsoncpp)

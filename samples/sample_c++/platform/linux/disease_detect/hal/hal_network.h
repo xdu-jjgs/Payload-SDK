@@ -1,7 +1,7 @@
 /**
  ********************************************************************
- * @file    hal_uart.h
- * @brief   This is the header file for "hal_uart.c", defining the structure and
+ * @file    hal_network.h
+ * @brief   This is the header file for "hal_network.c", defining the structure and
  * (exported) function prototypes.
  *
  * @copyright (c) 2021 DJI. All rights reserved.
@@ -24,19 +24,10 @@
  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef HAL_UART_H
-#define HAL_UART_H
+#ifndef HAL_NETWORK_H
+#define HAL_NETWORK_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "stdint.h"
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <unistd.h>
-#include <string.h>
-#include "stdlib.h"
-
 #include "dji_platform.h"
 
 #ifdef __cplusplus
@@ -44,22 +35,39 @@ extern "C" {
 #endif
 
 /* Exported constants --------------------------------------------------------*/
-//User can config dev based on there environmental conditions
-#define LINUX_UART_DEV1    "/dev/ttyTHS0"
-#define LINUX_UART_DEV2    "/dev/ttyACM0"
+
+/** @attention  User can config network card name here, if your device is not MF2C/G, please comment below and add your
+ * NIC name micro define as #define 'LINUX_NETWORK_DEV   "your NIC name"'.
+ */
+#ifdef PLATFORM_ARCH_x86_64
+#define LINUX_NETWORK_DEV           "enxf8e43b7bbc2c"
+#else
+#define LINUX_NETWORK_DEV           "l4tbr0"
+#endif
+/**
+ * @attention
+ */
+
+#ifdef PLATFORM_ARCH_x86_64
+#define USB_NET_ADAPTER_VID                   (0x0B95)
+#define USB_NET_ADAPTER_PID                   (0x1790)
+#else
+#define USB_NET_ADAPTER_VID                   (0x0955)
+#define USB_NET_ADAPTER_PID                   (0x7020)
+#endif
+
+#define LINUX_CMD_STR_MAX_SIZE      (128)
 
 /* Exported types ------------------------------------------------------------*/
 
 /* Exported functions --------------------------------------------------------*/
-T_DjiReturnCode HalUart_Init(E_DjiHalUartNum uartNum, uint32_t baudRate, T_DjiUartHandle *uartHandle);
-T_DjiReturnCode HalUart_DeInit(T_DjiUartHandle uartHandle);
-T_DjiReturnCode HalUart_WriteData(T_DjiUartHandle uartHandle, const uint8_t *buf, uint32_t len, uint32_t *realLen);
-T_DjiReturnCode HalUart_ReadData(T_DjiUartHandle uartHandle, uint8_t *buf, uint32_t len, uint32_t *realLen);
-T_DjiReturnCode HalUart_GetStatus(E_DjiHalUartNum uartNum, T_DjiUartStatus *status);
+T_DjiReturnCode HalNetWork_Init(const char *ipAddr, const char *netMask, T_DjiNetworkHandle *halObj);
+T_DjiReturnCode HalNetWork_DeInit(T_DjiNetworkHandle halObj);
+T_DjiReturnCode HalNetWork_GetDeviceInfo(T_DjiHalNetworkDeviceInfo *deviceInfo);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // HAL_UART_H
+#endif // HAL_NETWORK_H
 /************************ (C) COPYRIGHT DJI Innovations *******END OF FILE******/

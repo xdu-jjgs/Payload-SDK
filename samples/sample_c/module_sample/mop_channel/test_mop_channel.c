@@ -230,6 +230,8 @@ REBIND:
         USER_LOG_ERROR("mop bind channel error :0x%08llX", returnCode);
         osalHandler->TaskSleepMs(TEST_MOP_CHANNEL_RETRY_TIMEMS);
         goto REBIND;
+    } else {
+        USER_LOG_INFO("mop bind channel success");
     }
 
 REACCEPT:
