@@ -200,6 +200,15 @@ int main(int argc, char **argv)
         if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
             USER_LOG_ERROR("widget speaker test init error");
         }
+
+#ifdef CONFIG_MODULE_SAMPLE_MOP_CHANNEL_ON
+        returnCode = DjiTest_MopChannelStartService();
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("mop channel sample init error");
+        } else {
+            USER_LOG_INFO("mop channel sample init success");
+        }
+#endif
     } else {
 #ifdef CONFIG_MODULE_SAMPLE_CAMERA_EMU_ON
         returnCode = DjiTest_CameraEmuBaseStartService();
@@ -264,6 +273,8 @@ int main(int argc, char **argv)
         returnCode = DjiTest_MopChannelStartService();
         if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
             USER_LOG_ERROR("mop channel sample init error");
+        } else {
+            USER_LOG_INFO("mop channel sample init success");
         }
 #endif
 

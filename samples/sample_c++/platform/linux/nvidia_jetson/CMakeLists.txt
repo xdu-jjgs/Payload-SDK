@@ -24,6 +24,7 @@ file(GLOB_RECURSE MODULE_SAMPLE_SRC
         ../../../module_sample/camera_manager/*.c*
         ../../../module_sample/perception/*.c*
         ../../../module_sample/gimbal/*.c*
+        ../../../module_sample/hms_manager/*.c*
         ../../../../sample_c/module_sample/*.c
         )
 file(GLOB_RECURSE MODULE_COMMON_SRC ../common/*.c*)

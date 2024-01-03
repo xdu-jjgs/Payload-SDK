@@ -47,7 +47,7 @@ add_executable(${PROJECT_NAME}
 
 # Try to see if user has OpenCV installed
 # if yes, default callback will display the image
-find_package(OpenCV QUIET)
+find_package(OpenCV REQUIRED)
 if (OpenCV_FOUND)
     message("\n${PROJECT_NAME}...")
     message(STATUS "Found OpenCV installed in the system, will use it to display image in AdvancedSensing APIs")
@@ -118,6 +118,43 @@ if (LIBUSB_FOUND)
 else ()
     message(STATUS "Cannot Find LIBUSB")
 endif (LIBUSB_FOUND)
+
+# CUDA
+find_package(CUDA REQUIRED)
+if (CUDA_FOUND)
+    message(STATUS "Find CUDA include at ${CUDA_INCLUDE_DIRS}")
+    message(STATUS "Find CUDA libraries: ${CUDA_LIBRARIES}")
+
+    target_link_libraries(${PROJECT_NAME} ${CUDA_LIBRARIES})
+    include_directories(${CUDA_INCLUDE_DIRS})
+else ()
+    message(STATUS "Cannot Find CUDA")
+endif (CUDA_FOUND)
+
+# yaml-cpp
+find_package(yaml-cpp REQUIRED)
+message(STATUS "Find YAML include at ${YAML_CPP_INCLUDE_DIR}")
+
+target_link_libraries(${PROJECT_NAME} yaml-cpp)
+include_directories(${YAML_CPP_INCLUDE_DIR})
+
+# TensorRT
+set(TENSORRT_ROOT "/home/chaucer/TensorRT-8.0.1.6")
+find_path(TENSORRT_INCLUDE_DIR NvInfer.h
+       HINTS ${TENSORRT_ROOT} PATH_SUFFIXES include/)
+message(STATUS "Found TensorRT headers at ${TENSORRT_INCLUDE_DIR}")
+include_directories(${TENSORRT_INCLUDE_DIR})
+
+find_library(TENSORRT_LIBRARY_INFER nvinfer
+       HINTS ${TENSORRT_ROOT} ${TENSORRT_BUILD} ${CUDA_TOOLKIT_ROOT_DIR}
+       PATH_SUFFIXES lib lib64 lib/x64)
+find_library(TENSORRT_LIBRARY_ONNXPARSER nvonnxparser
+       HINTS  ${TENSORRT_ROOT} ${TENSORRT_BUILD} ${CUDA_TOOLKIT_ROOT_DIR}
+       PATH_SUFFIXES lib lib64 lib/x64)
+set(TENSORRT_LIBRARY ${TENSORRT_LIBRARY_INFER} ${TENSORRT_LIBRARY_ONNXPARSER})
+message(STATUS "Find TensorRT libs: ${TENSORRT_LIBRARY}")
+target_link_libraries(${PROJECT_NAME} ${TENSORRT_LIBRARY} -lnvinfer nvonnxparser)
+
 
 if (NOT EXECUTABLE_OUTPUT_PATH)
     set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
