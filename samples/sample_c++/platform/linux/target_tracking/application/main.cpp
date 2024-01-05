@@ -284,7 +284,7 @@ static void ShowRgbImageCallback(CameraRGBImage img, void*)
     USER_LOG_INFO("number of det boxes (inf): %d", rects_det_inf.size());
 
     auto t0_trk_inf = std::chrono::high_resolution_clock::now();
-    auto rects_trk_inf = fusion_inf->track(det_rects_inf);
+    auto rects_trk_inf = fusion_inf->track(rects_det_inf);
     auto t1_trk_inf = std::chrono::high_resolution_clock::now();
     float t_trk_inf = std::chrono::duration<float, std::milli>(t1_trk_inf - t0_trk_inf).count();
     USER_LOG_INFO("track (inf): %f ms", t_trk_inf);
@@ -298,7 +298,7 @@ static void ShowRgbImageCallback(CameraRGBImage img, void*)
     USER_LOG_INFO("number of det boxes (rgb): %d", rects_det_rgb.size());
 
     auto t0_trk_rgb = std::chrono::high_resolution_clock::now();
-    auto rects_trk_rgb = fusion_rgb->track(det_rects_rgb);
+    auto rects_trk_rgb = fusion_rgb->track(rects_det_rgb);
     auto t1_trk_rgb = std::chrono::high_resolution_clock::now();
     float t_trk_rgb = std::chrono::duration<float, std::milli>(t1_trk_rgb - t0_trk_rgb).count();
     USER_LOG_INFO("track (rgb): %f ms", t_trk_rgb);
@@ -314,7 +314,7 @@ static void ShowRgbImageCallback(CameraRGBImage img, void*)
         trk.tlwh[0] += 0;
         trk.tlwh[1] += 160;
     }
-    for (auto& trk : trk_rects_rgb) {
+    for (auto& trk : rects_trk_rgb) {
         trk.tlwh[0] += 960;
         trk.tlwh[1] += 160;
     }
