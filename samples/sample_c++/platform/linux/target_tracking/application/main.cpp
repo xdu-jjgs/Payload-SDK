@@ -304,13 +304,13 @@ static void ShowRgbImageCallback(CameraRGBImage img, void*)
     USER_LOG_INFO("track (rgb): %f ms", t_trk_rgb);
     USER_LOG_INFO("number of trk boxes (rgb): %d", rects_trk_rgb.size());
 
-    bboxs2img(trk_rects_inf, inf);
-    bboxs2img(trk_rects_rgb, rgb);
+    bboxs2img(rects_trk_inf, inf);
+    bboxs2img(rects_trk_rgb, rgb);
     cv::imshow("inf", inf);
     cv::imshow("rgb", rgb);
     cv::waitKey(10);
 
-    for (auto& trk : trk_rects_inf) {
+    for (auto& trk : rects_trk_inf) {
         trk.tlwh[0] += 0;
         trk.tlwh[1] += 160;
     }
@@ -318,11 +318,11 @@ static void ShowRgbImageCallback(CameraRGBImage img, void*)
         trk.tlwh[0] += 960;
         trk.tlwh[1] += 160;
     }
-    std::vector<STrack> trk_rects;
-    trk_rects.reserve(trk_rects_inf.size() + trk_rects_rgb.size());
-    trk_rects.insert(trk_rects.end(), trk_rects_inf.begin(), trk_rects_inf.end());
-    trk_rects.insert(trk_rects.end(), trk_rects_rgb.begin(), trk_rects_rgb.end());
-    std::string res = bboxs2json(trk_rects);
+    std::vector<STrack> rects_trk;
+    rects_trk.reserve(rects_trk_inf.size() + rects_trk_rgb.size());
+    rects_trk.insert(rects_trk.end(), rects_trk_inf.begin(), rects_trk_inf.end());
+    rects_trk.insert(rects_trk.end(), rects_trk_rgb.begin(), rects_trk_rgb.end());
+    std::string res = bboxs2json(rects_trk);
 
     USER_LOG_INFO("result: %s", &res[0]);
     memcpy(send_buffer, &res[0], res.size()+1);
