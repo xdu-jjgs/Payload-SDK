@@ -105,10 +105,10 @@ int main(int argc, char **argv)
     }
     */
 
-    std::string inf_cfg = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/configs/inf.yaml";
-    std::string inf_eng = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/checkpoints/yolov5s_hb2_inf_640.trt";
-    std::string rgb_cfg = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/configs/rgb.yaml";
-    std::string rgb_eng = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/checkpoints/yolov5m_xd_rgb_1280.trt";
+    std::string inf_cfg = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/cfgs/inf.yaml";
+    std::string inf_eng = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/ckpts/yolov5s_hb2_inf_640.trt";
+    std::string rgb_cfg = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/cfgs/rgb.yaml";
+    std::string rgb_eng = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/ckpts/yolov5m_xd_rgb_1280.trt";
     std::string camera_cfg = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/configs/camera.yaml";
     // fusion = new Fusion(inf_cfg, inf_eng, rgb_cfg, rgb_eng, camera_cfg);
     fusion_inf = new Fusion(inf_cfg, inf_eng, rgb_cfg, rgb_eng, camera_cfg);
