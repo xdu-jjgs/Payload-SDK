@@ -25,6 +25,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include <fcntl.h>
 #include <unistd.h>
+#include <chrono>
 #include <mutex>
 
 #include <opencv2/opencv.hpp>
@@ -35,14 +36,15 @@
 #include <dji_low_speed_data_channel.h>
 #include <dji_high_speed_data_channel.h>
 #include <dji_mop_channel.h>
+#include <dji_gimbal_manager.h>
 #include <dji_logger.h>
 
 #include "application.hpp"
 #include "Fusion.h"
 
 /* Private constants ---------------------------------------------------------*/
-#define FPV_CAM          true
-#define MAIN_CAM         false
+#define FPV_CAM          false
+#define MAIN_CAM         true
 #define VICE_CAM         false
 #define TOP_CAM          false
 
@@ -77,6 +79,9 @@ static T_DjiTaskHandle s_ConnectThread;
 static T_DjiTaskHandle s_SendThread;
 static T_DjiTaskHandle s_RecvOutputThread;
 
+static E_DjiMountPosition s_MountPosition = E_DjiMountPosition('1' - '0');
+static E_DjiGimbalMode s_GimbalMode = DJI_GIMBAL_MODE_FREE;
+
 /* Private functions declaration ---------------------------------------------*/
 static void ShowRgbImageCallback(CameraRGBImage img, void*);
 static void* RecvOutputTask(void*);
@@ -92,25 +97,11 @@ int main(int argc, char **argv)
 {
     Application application(argc, argv);
 
-    /*
-    if ((fd_cpp2py = open("/home/dji/Desktop/cpp2py", O_WRONLY)) != 0) {
-        USER_LOG_ERROR("cpp2py fifo: failed to open");
-    } else {
-        USER_LOG_INFO("cpp2py fifo: opened");
-    }
-    if ((fd_py2cpp = open("/home/dji/Desktop/py2cpp", O_RDONLY)) != 0) {
-        USER_LOG_ERROR("py2cpp fifo: failed to open");
-    } else {
-        USER_LOG_INFO("py2cpp fifo: opened");
-    }
-    */
-
     std::string inf_cfg = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/cfgs/inf.yaml";
     std::string inf_eng = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/ckpts/yolov5s_hb2_inf_640.trt";
     std::string rgb_cfg = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/cfgs/rgb.yaml";
     std::string rgb_eng = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/ckpts/yolov5m_xd_rgb_1280.trt";
     std::string camera_cfg = "/home/dji/Documents/Payload-SDK/samples/sample_c++/platform/linux/target_tracking/configs/camera.yaml";
-    // fusion = new Fusion(inf_cfg, inf_eng, rgb_cfg, rgb_eng, camera_cfg);
     fusion_inf = new Fusion(inf_cfg, inf_eng, rgb_cfg, rgb_eng, camera_cfg);
     fusion_rgb = new Fusion(inf_cfg, inf_eng, rgb_cfg, rgb_eng, camera_cfg);
 
@@ -136,17 +127,6 @@ int main(int argc, char **argv)
         USER_LOG_INFO("malloc send buffer success");
     }
 
-    /*
-    // py2cpp
-    retcode = handler->TaskCreate("recv_output", RecvOutputTask, TASK_STACK_SIZE, NULL, &s_RecvOutputThread);
-    if (retcode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_ERROR("recv output task create error");
-        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
-    } else {
-        USER_LOG_INFO("recv output task create success");
-    }
-    */
-
     retcode = handler->TaskCreate("connect", ConnectTask, TASK_STACK_SIZE, NULL, &s_ConnectThread);
     if (retcode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         USER_LOG_ERROR("connect task create error");
@@ -154,7 +134,6 @@ int main(int argc, char **argv)
     } else {
         USER_LOG_INFO("connect task create success");
     }
-
 
     // recv
     /*
@@ -178,6 +157,29 @@ int main(int argc, char **argv)
         USER_LOG_INFO("send task create success");
     }
     */
+
+    // gimbal
+    retcode = DjiGimbalManager_Init();
+    if (retcode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("init gimbal manager error");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    } else {
+        USER_LOG_INFO("init gimbal manager success");
+    }
+    retcode = DjiGimbalManager_SetMode(s_MountPosition, s_GimbalMode);
+    if (retcode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("set gimbal mode error");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    } else {
+        USER_LOG_INFO("set gimbal mode success");
+    }
+    retcode = DjiGimbalManager_Rotate(s_MountPosition, (T_DjiGimbalManagerRotation) {DJI_GIMBAL_ROTATION_MODE_RELATIVE_ANGLE, 5, 0, 0, 2.0});
+    if (retcode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("rotate gimbal error");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    } else {
+        USER_LOG_INFO("rotate gimbal success");
+    }
 
     handler->TaskSleepMs(99999999);
 
@@ -251,8 +253,6 @@ static void* RecvOutputTask(void*) {
 
 /* Private functions definition-----------------------------------------------*/
 // cv::VideoCapture* cap = new cv::VideoCapture("/home/dji/Desktop/input.mp4");
-// cv::VideoCapture* cap_inf = new cv::VideoCapture("/home/dji/Desktop/inf.mp4");
-// cv::VideoCapture* cap_rgb = new cv::VideoCapture("/home/dji/Desktop/rgb.mp4");
 static void ShowRgbImageCallback(CameraRGBImage img, void*)
 {
     T_DjiOsalHandler *handler = DjiPlatform_GetOsalHandler();
@@ -267,71 +267,46 @@ static void ShowRgbImageCallback(CameraRGBImage img, void*)
     if (mat.size().width == 0) {
         cap = new cv::VideoCapture("/home/dji/Desktop/input.mp4");
         mtx.unlock();
-	return;
+        return;
     }
     */
+    cv::Mat inf = mat(cv::Rect(0, 160, 960, 760));
+    cv::Mat rgb = mat(cv::Rect(960, 160, 960, 760));
     width = mat.size().width;
     height = mat.size().height;
     USER_LOG_INFO("w=%d, h=%d", width, height);
 
-    cv::Mat inf = mat(cv::Rect(0, 160, 960, 760));
-    cv::Mat rgb = mat(cv::Rect(960, 160, 960, 760));
-    /*
-    cap_inf->read(inf);
-    if (inf.size().width == 0) {
-        cap_inf = new cv::VideoCapture("/home/dji/Desktop/inf.mp4");
-        mtx.unlock();
-	return;
-    }
-    cap_rgb->read(rgb);
-    if (rgb.size().width == 0) {
-        cap_rgb = new cv::VideoCapture("/home/dji/Desktop/rgb.mp4");
-        mtx.unlock();
-	return;
-    }
-    */
+    auto t0_det_inf = std::chrono::high_resolution_clock::now();
+    auto rects_det_inf = fusion_inf->inference_inf(inf);
+    auto t1_det_inf = std::chrono::high_resolution_clock::now();
+    float t_det_inf = std::chrono::duration<float, std::milli>(t1_det_inf - t0_det_inf).count();
+    USER_LOG_INFO("detect (inf): %f ms", t_det_inf);
+    USER_LOG_INFO("number of det boxes (inf): %d", rects_det_inf.size());
 
-    /*
-    vector<unsigned char> data;
-    cv::imencode(".jpg", mat, data);
-    USER_LOG_INFO("write to cpp2py %d bytes", data.size());
-    write(fd_cpp2py, &data[0], data.size());
-    */
-    /*
-    cv::cvtColor(mat, mat, cv::COLOR_RGB2BGR);
-    cv::imwrite("/home/dji/Desktop/input.jpg", mat);
-    */
+    auto t0_trk_inf = std::chrono::high_resolution_clock::now();
+    auto rects_trk_inf = fusion_inf->track(det_rects_inf);
+    auto t1_trk_inf = std::chrono::high_resolution_clock::now();
+    float t_trk_inf = std::chrono::duration<float, std::milli>(t1_trk_inf - t0_trk_inf).count();
+    USER_LOG_INFO("track (inf): %f ms", t_trk_inf);
+    USER_LOG_INFO("number of trk boxes (inf): %d", rects_trk_inf.size());
 
-    /*
-    auto rects = fusion->inference_rgb(mat);
-    USER_LOG_INFO("number of boxes: %d", rects.size());
-    auto res = fusion->track(rects);
-    USER_LOG_INFO("result: %s", &res[0]);
-    memcpy(send_buffer, &res[0], res.size()+1);
-    send_size = res.size();
+    auto t0_det_rgb = std::chrono::high_resolution_clock::now();
+    auto rects_det_rgb = fusion_rgb->inference_rgb(rgb);
+    auto t1_det_rgb = std::chrono::high_resolution_clock::now();
+    float t_det_rgb = std::chrono::duration<float, std::milli>(t1_det_rgb - t0_det_rgb).count();
+    USER_LOG_INFO("detect (rgb): %f ms", t_det_rgb);
+    USER_LOG_INFO("number of det boxes (rgb): %d", rects_det_rgb.size());
 
-    for (const auto& rect : rects) {
-        cv::putText(mat, "people", cv::Point(rect.x - rect.w / 2, rect.y - rect.h / 2 - 5), cv::FONT_HERSHEY_COMPLEX, 0.7, cv::Scalar(255, 0, 0), 2);
-        cv::Rect rst(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.w, rect.h);
-        cv::rectangle(mat, rst, cv::Scalar(255, 0, 0), 2, cv::LINE_8, 0);
-    }
-    cv::imshow("input", mat);
-    cv::waitKey(10);
-    */
-
-    auto det_rects_inf = fusion_inf->inference_inf(inf);
-    auto trk_rects_inf = fusion_inf->track(det_rects_inf);
-    USER_LOG_INFO("number of det boxes: %d", det_rects_inf.size());
-    USER_LOG_INFO("number of trk boxes: %d", trk_rects_inf.size());
-
-    auto det_rects_rgb = fusion_rgb->inference_rgb(rgb);
-    auto trk_rects_rgb = fusion_rgb->track(det_rects_rgb);
-    USER_LOG_INFO("number of det boxes: %d", det_rects_rgb.size());
-    USER_LOG_INFO("number of trk boxes: %d", trk_rects_rgb.size());
+    auto t0_trk_rgb = std::chrono::high_resolution_clock::now();
+    auto rects_trk_rgb = fusion_rgb->track(det_rects_rgb);
+    auto t1_trk_rgb = std::chrono::high_resolution_clock::now();
+    float t_trk_rgb = std::chrono::duration<float, std::milli>(t1_trk_rgb - t0_trk_rgb).count();
+    USER_LOG_INFO("track (rgb): %f ms", t_trk_rgb);
+    USER_LOG_INFO("number of trk boxes (rgb): %d", rects_trk_rgb.size());
 
     bboxs2img(trk_rects_inf, inf);
-    cv::imshow("inf", inf);
     bboxs2img(trk_rects_rgb, rgb);
+    cv::imshow("inf", inf);
     cv::imshow("rgb", rgb);
     cv::waitKey(10);
 
@@ -365,7 +340,11 @@ static void ShowRgbImageCallback(CameraRGBImage img, void*)
         }
         */
         // mop
+        auto t0_mop = std::chrono::high_resolution_clock::now();
         retcode = DjiMopChannel_SendData(s_MopChannelNormalOutHandle, send_buffer, send_size, &send_size);
+        auto t1_mop = std::chrono::high_resolution_clock::now();
+        float t_mop = std::chrono::duration<float, std::milli>(t1_mop - t0_mop).count();
+        USER_LOG_INFO("mop: %f ms", t_mop);
         if (retcode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
             USER_LOG_ERROR("send data error, stat:0x%08llX", retcode);
             if (retcode == DJI_ERROR_MOP_CHANNEL_MODULE_CODE_CONNECTION_CLOSE) {
